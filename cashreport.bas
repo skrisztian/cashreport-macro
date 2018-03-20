@@ -3,19 +3,12 @@ REM
 REM This set of macros prepare a Cash Book report based on a properly
 REM filled and formatted table, and export it into pdf.
 REM
-REM Usage:
-REM - CashBookSortData - sorts the original spreasheet data
-REM - CashBookCreateReport - prepares a report based on the spreadhseet data
-REM                          inside the spreadsheet, next to the origanl data
-REM - PrintReport - creates a formatted pdf file from the spreadsheet report
-REM                 range, adds an ID and saves it by the name given by the user
-REM
 REM Writen by Krisztian Stancz
-REM Version: 2018-Mar-20-v2
+REM Version: 2018-Mar-20-v3
 
 Type DefaultData
     FirstYear as Long
-	  FirstMonth as Long
+	FirstMonth as Long
     CityTwoLetters as String
     CityName as String
     OrgName as String
@@ -79,6 +72,11 @@ Sub CashBookSortData
 	ColumnToDelete = Sheet.getCellRangeByPosition(LastColumn, 0, LastColumn, 0).Columns
 	ColumnToDelete.removeByIndex(0, 1)
 	LastColumn = LastColumn-1
+	
+	'Fill in the rolling summary functions in column E
+	For I = 1 To LastRow
+		Sheet.GetCellByPosition(4, I).Formula = "=E" & I & "+C" & I+1 & "-D" & I+1
+	Next I
 
 End Sub
 
@@ -324,9 +322,7 @@ Sub PrintReport
 	HText = HContent.CenterText
 	HText.String = ""
 	DefPage.RightPageFooterContent = HContent
-	'Page numbering from macro does not work yet, must be set up in the spreadsheet itself
-  'Otherwise should be something like this:
-  'HText = HContent.RightText
+	'HText = HContent.RightText
 	'HText.String = CStr(Doc.CurrentController.PageCount) & " / " & PageNum
 	'DefPage.RightPageFooterContent = HContent
 	
@@ -348,7 +344,7 @@ Sub PrintReport
     args1(1).Value = aFilterData() 'GetReportRange 
     dispatcher.executeDispatch(document, ".uno:ExportDirectToPDF", "", 0, args1())
 
-	' To export with a fixed automatic name:
+	' To export with fixed automatic name:
 	' Dim oDoc As Object
 	' Dim PdfURL as String -> new file name with full path
 	' oDoc = ThisComponent
@@ -374,7 +370,7 @@ Sub GetDefaults
     Defaults.CityName = "Budapest"
 
 	' City two letter code
-	' A város kétbetús rövidítése, ami a sorszámba kerül.
+	' A város kétbetűs rövidítése, ami a sorszámba kerül
 	' Két nagy betű, idézőjelekkel
     Defaults.CityTwoLetters = "BP"
     
@@ -512,7 +508,6 @@ Function GetReportId(Cell As Object) As String
 	GetReportId = "HP" & Defaults.CityTwoLetters & IdString
 
 End Function
-
 
 REM ***** Debug functions *****
 
