@@ -9,7 +9,7 @@ REM Version: 2018-Mar-20-v3
 Type DefaultData
     FirstYear as Long
 	FirstMonth as Long
-    CityTwoLetters as String
+	CityCode as String
     CityName as String
     OrgName as String
     OrgAddress as String
@@ -370,9 +370,9 @@ Sub GetDefaults
     Defaults.CityName = "Budapest"
 
 	' City two letter code
-	' A város kétbetűs rövidítése, ami a sorszámba kerül
-	' Két nagy betű, idézőjelekkel
-    Defaults.CityTwoLetters = "BP"
+	' A város hárombetűs rövidítése, ami a sorszámba kerül
+	' Három nagy betű, idézőjelekkel
+	Defaults.CityCode = "BUD"
     
     ' Organization name
     ' A társaság neve
@@ -505,7 +505,7 @@ Function GetReportId(Cell As Object) As String
 	    IdString = CStr(IdNum)
 	End Select
 
-	GetReportId = "HP" & Defaults.CityTwoLetters & IdString
+	GetReportId = "HP" & Defaults.CityCode & IdString
 
 End Function
 
