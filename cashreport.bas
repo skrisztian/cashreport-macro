@@ -369,7 +369,7 @@ Sub GetDefaults
 	' A város teljes neve, idézőjelekkel
     Defaults.CityName = "Budapest"
 
-	' City two letter code
+	' City short code
 	' A város hárombetűs rövidítése, ami a sorszámba kerül
 	' Három nagy betű, idézőjelekkel
 	Defaults.CityCode = "BUD"
