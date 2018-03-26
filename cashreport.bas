@@ -14,6 +14,7 @@ Type DefaultData
     OrgName as String
     OrgAddress as String
     TaxNumber as String
+    IdString as String
 End Type
 
 Dim HufFormatId, HufFormatIdNoPoint As Long
@@ -357,34 +358,33 @@ REM ***** Helper functions *****
 
 Sub GetDefaults
 
+	Dim Sheet As Object
+	
+	Sheet = ThisComponent.Sheets.getByName("Beállítások")
+
 	'First year of report
-	'A 0001 számú jelentés éve, 4 számjegy
-    Defaults.FirstYear = 2018
+    Defaults.FirstYear = Sheet.GetCellByPosition(2, 21).Value
 
 	'First month of report
-	'A 0001 számú jelentés hónapja 1 vagy 2 számjegy (január = 1, december = 12)
-	Defaults.FirstMonth = 2
+	Defaults.FirstMonth = Sheet.GetCellByPosition(2, 28).Value
 	
-	' City long name
-	' A város teljes neve, idézőjelekkel
-    Defaults.CityName = "Budapest"
+	'City long name
+    Defaults.CityName = Sheet.GetCellByPosition(2, 23).String
 
-	' City short code
-	' A város hárombetűs rövidítése, ami a sorszámba kerül
-	' Három nagy betű, idézőjelekkel
-	Defaults.CityCode = "BUD"
+	'City short code
+	Defaults.CityCode = Sheet.GetCellByPosition(2, 27).String
     
-    ' Organization name
-    ' A társaság neve
-    Defaults.OrgName = "Magyarországi Taoista Tai Chi Társaság"
+    'Organization name
+    Defaults.OrgName = Sheet.GetCellByPosition(2, 29).String
     
-    ' Organization address
-    ' A társaság központi hivatalos címe
-    Defaults.OrgAddress = "1053 Budapest, Kossuth L. u. 18. II./3."
+    'Organization address
+    Defaults.OrgAddress = Sheet.GetCellByPosition(2, 30).String
     
-    ' Organizations tax number
-    ' A társaság adószáma
-    Defaults.TaxNumber = "18070022-1-41"
+    'Organizations tax number
+    Defaults.TaxNumber = Sheet.GetCellByPosition(2, 31).String
+    
+    'Beginning of ID string
+    Defaults.IdString = Sheet.GetCellByPosition(2, 32).String
 
 End Sub
 
@@ -505,7 +505,7 @@ Function GetReportId(Cell As Object) As String
 	    IdString = CStr(IdNum)
 	End Select
 
-	GetReportId = "HP" & Defaults.CityCode & IdString
+	GetReportId = Defaults.IdString & Defaults.CityCode & IdString
 
 End Function
 
