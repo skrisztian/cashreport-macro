@@ -4,7 +4,7 @@ REM This set of macros prepare a Cash Book report based on a properly
 REM filled and formatted table, and export it into pdf.
 REM
 REM Writen by Krisztian Stancz
-REM Version: 2018-Mar-20-v3
+REM Version: 2018-Jun-05-v5
 
 Type DefaultData
     FirstYear as Long
@@ -15,9 +15,10 @@ Type DefaultData
     OrgAddress as String
     TaxNumber as String
     IdString as String
+    CurrencyString as String
 End Type
 
-Dim HufFormatId, HufFormatIdNoPoint As Long
+Dim CurrencyFormatId, CurrencyFormatIdNoPoint As Long
 Dim Defaults As New DefaultData
 
 Sub CashBookSortData
@@ -28,6 +29,12 @@ Sub CashBookSortData
 
 	'Get active sheet
 	Sheet = ThisComponent.GetCurrentController.ActiveSheet
+	
+	'Exit if there are not enough data
+	If (NoData(Sheet)) Then
+		MsgBox "Legalább az első számla adatait ki kell tölteni!"
+		Stop
+	End If
 
 	'Get the last cell's position in column "A"
 	LastRow = GetCellCountOfColumn(0)-1
@@ -89,11 +96,14 @@ Sub CashBookCreateReport
 	Dim I, L As Long
 	Dim ColumnNameIncome, ColumnNameExpense, DQuote, LBreak As String
 	Dim NumberFormats As Object
-	Dim HufFormatString, HufFormatStringNoPoint, DateFormatString As String
+	Dim CurrencyFormatString, CurrencyFormatStringNoPoint, DateFormatString As String
 	Dim DateFormatId As Long
 
 	DQuote = Chr$(34)&Chr$(34)
 	LBreak = Chr$(10)
+
+	' Read default data into global var
+	GetDefaults
 
 	' Sort data
 	CashBookSortData
@@ -109,18 +119,18 @@ Sub CashBookCreateReport
 	LocalSettings.Country = "hu"
 	
 	NumberFormats = Doc.NumberFormats
-	HufFormatString = "#.##0,00 Ft"
-	HufFormatStringNoPoint = "##0,00 Ft"
+	CurrencyFormatString = "#.##0,00 " & Defaults.CurrencyString
+	CurrencyFormatStringNoPoint = "##0,00 " & Defaults.CurrencyString
 	DateFormatString = "YYYY. MM. DD."
-	
-	HufFormatId = NumberFormats.queryKey(HufFormatString, LocalSettings, True)
-	If HufFormatId = -1 Then
-		HufFormatId = NumberFormats.addNew(HufFormatString, LocalSettings)
+
+	CurrencyFormatId = NumberFormats.queryKey(CurrencyFormatString, LocalSettings, True)
+	If CurrencyFormatId = -1 Then
+		CurrencyFormatId = NumberFormats.addNew(CurrencyFormatString, LocalSettings)
 	End If
 	
-	HufFormatIdNoPoint = NumberFormats.queryKey(HufFormatStringNoPoint, LocalSettings, True)
-	If HufFormatIdNoPoint = -1 Then
-		HufFormatIdNoPoint = NumberFormats.addNew(HufFormatStringNoPoint, LocalSettings)
+	CurrencyFormatIdNoPoint = NumberFormats.queryKey(CurrencyFormatStringNoPoint, LocalSettings, True)
+	If CurrencyFormatIdNoPoint = -1 Then
+		CurrencyFormatIdNoPoint = NumberFormats.addNew(CurrencyFormatStringNoPoint, LocalSettings)
 	End If
 	
 	DateFormatId = NumberFormats.queryKey(DateFormatString, LocalSettings, True)
@@ -182,11 +192,11 @@ Sub CashBookCreateReport
 
 		'Bevétel
 		Sheet.GetCellByPosition(ReportFirstColumn+4, Row).Formula = "=IF(C" & L+2 & "=" & DQuote & ";" & DQuote & ";C" & L+2 & ")"
-		FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+4, Row))
+		FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+4, Row))
 
 		'Kiadás
 		Sheet.GetCellByPosition(ReportFirstColumn+5, Row).Formula = "=IF(D" & L+2 & "=" & DQuote & ";" & DQuote & ";D" & L+2 & ")"
-		FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+5, Row))
+		FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+5, Row))
 
 	Next L
 
@@ -198,28 +208,28 @@ Sub CashBookCreateReport
 	Sheet.GetCellByPosition(ReportFirstColumn+3, LastRow+4).String = "Forgalom"
 	Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+4).Formula = "=SUM(" & ColumnNameIncome & 5 & ":" & ColumnNameIncome & LastRow+4 & ")"
 	Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+4).Formula = "=SUM(" & ColumnNameExpense & 5 & ":" & ColumnNameExpense & LastRow+4 & ")"
-	FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+4))
-	FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+4))
+	FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+4))
+	FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+4))
 
 	'Kezdő pénzkészlet
 	Sheet.GetCellByPosition(ReportFirstColumn+3, LastRow+5).String = "Kezdő pénzkészlet"
 	Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+5).Formula = "=E1"
-	FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+5))
+	FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+5))
 	Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+5).CellBackColor = RGB(210, 210, 210)
 	
 	'Záró pénzkészlet
 	Sheet.GetCellByPosition(ReportFirstColumn+3, LastRow+6).String = "Záró pénzkészlet"
 	Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+6).Formula = "=E" & LastRow+1
-	FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+6))
+	FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+6))
 	Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+6).CellBackColor = RGB(210, 210, 210)
 
 	'Összesen
 	Sheet.GetCellByPosition(ReportFirstColumn+3, LastRow+7).String = "Összesen"
 	Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+7).Formula = "=SUM(" & ColumnNameIncome & LastRow+5 & ":" & ColumnNameIncome & LastRow+7 & ")"
-	FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+7))
+	FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+7))
 	Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+7).CharWeight = com.sun.star.awt.FontWeight.BOLD
 	Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+7).Formula = "=SUM(" & ColumnNameExpense & LastRow+5 & ":" & ColumnNameExpense & LastRow+7 & ")"
-	FormatHufValue(Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+7))
+	FormatCurrencyValue(Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+7))
 	Sheet.GetCellByPosition(ReportFirstColumn+5, LastRow+7).CharWeight = com.sun.star.awt.FontWeight.BOLD
 	
 	Sheet.GetCellByPosition(ReportFirstColumn+4, LastRow+8).String = "Bevétel"
@@ -372,19 +382,25 @@ Sub GetDefaults
     Defaults.CityName = Sheet.GetCellByPosition(2, 23).String
 
 	'City short code
-	Defaults.CityCode = Sheet.GetCellByPosition(2, 27).String
+	Defaults.CityCode = Sheet.GetCellByPosition(2, 28).String
     
     'Organization name
-    Defaults.OrgName = Sheet.GetCellByPosition(2, 29).String
+    Defaults.OrgName = Sheet.GetCellByPosition(2, 30).String
     
     'Organization address
-    Defaults.OrgAddress = Sheet.GetCellByPosition(2, 30).String
+    Defaults.OrgAddress = Sheet.GetCellByPosition(2, 31).String
     
     'Organizations tax number
-    Defaults.TaxNumber = Sheet.GetCellByPosition(2, 31).String
+    Defaults.TaxNumber = Sheet.GetCellByPosition(2, 32).String
     
     'Beginning of ID string
-    Defaults.IdString = Sheet.GetCellByPosition(2, 32).String
+    Defaults.IdString = Sheet.GetCellByPosition(2, 33).String
+    
+    'Currency
+    Defaults.CurrencyString = "[$" & Sheet.GetCellByPosition(2, 24).String &"]"
+    If Defaults.CurrencyString = "[$HUF]" Then
+    	Defaults.CurrencyString = "[$Ft]"
+    End If
 
 End Sub
 
@@ -448,12 +464,12 @@ Sub SetBoxBorder(Range As Object, LineWidth As Long, SetInnerBorders As Boolean)
 
 End Sub
 
-Sub FormatHufValue(Cell As Object)
+Sub FormatCurrencyValue(Cell As Object)
 
 	If Cell.Value < 1000 Then
-		Cell.NumberFormat = HufFormatIdNoPoint
+		Cell.NumberFormat = CurrencyFormatIdNoPoint
 	Else
-		Cell.NumberFormat = HufFormatId
+		Cell.NumberFormat = CurrencyFormatId
 	End If
 	
 End Sub
@@ -467,6 +483,13 @@ Function GetReportRange As Object
 	Search = Sheet.createSearchDescriptor()
 	Search.SearchString = "Időszaki pénztárjelentés"
 	Cell = Sheet.findFirst(Search)
+	
+	'Stop if there is nothing to print
+	If IsNull(Cell) Then
+		msgbox "Nincs még elmenthető jelentés!"
+		Stop
+	End If
+	
 	ColumnRange = Sheet.getCellRangeByPosition(Cell.CellAddress.Column, 3, Cell.CellAddress.Column, 10000)
 	LastCell = ColumnRange.computeFunction(com.sun.star.sheet.GeneralFunction.COUNT) + 14
 	GetReportRange = Sheet.GetCellRangeByPosition(Cell.CellAddress.Column, 0, Cell.CellAddress.Column+5, LastCell)
@@ -476,9 +499,41 @@ End Function
 Function GetReportPeriod(Cell As Object) As String
 
 	Dim Period As Date
+	Dim Year, MonthName as String
 
 	Period = Cell.Value
-	GetReportPeriod = Format(Period, "yyyy. MMMM")
+	Year = Format(Period, "yyyy")
+
+	'Month names are explicitly given so it consistently works accross various localizations.
+	'Otherwise it could be Format(Period, "yyyy. MMMM")
+	Select Case Month(Period)
+	Case 1
+		MonthName = "január"
+	Case 2
+		MonthName = "február"
+	Case 3
+		MonthName = "március"
+	Case 4
+		MonthName = "április"
+	Case 5
+		MonthName = "május"
+	Case 6
+		MonthName = "június"
+	Case 7
+		MonthName = "július"
+	Case 8
+		MonthName = "augusztus"
+	Case 9
+		MonthName = "szeptember"
+	Case 10
+		MonthName = "október"
+	Case 11
+		MonthName = "november"
+	Case 12
+		MonthName = "december"
+	End Select
+
+	GetReportPeriod = Year & ". " & MonthName
 
 End Function
 
@@ -493,6 +548,12 @@ Function GetReportId(Cell As Object) As String
 	
 	Period = Cell.Value
 	IdNum = (Year(Period) - Defaults.FirstYear) * 12 + Month(Period) - (Defaults.FirstMonth - 1)
+	
+	'Stop if the ID is invalid
+	If IdNum < 1 Then
+		MsgBox "A pénztárjelentés sorszáma kisebb, mint 1!"
+		Stop
+	End If
 
 	Select Case IdNum
 	  Case 0 To 9                   
@@ -508,6 +569,27 @@ Function GetReportId(Cell As Object) As String
 	GetReportId = Defaults.IdString & Defaults.CityCode & IdString
 
 End Function
+
+Function CellIsBlank(Cell As Object) As Boolean
+
+   CellIsBlank = (Cell.Type = com.sun.star.table.CellContentType.EMPTY)
+
+End Function
+
+Function NoData(Sheet) As Boolean
+
+	Dim Value As Boolean
+	
+	Value = False
+	
+	If CellIsBlank(Sheet.getCellByPosition(0, 1)) Or CellIsBlank(Sheet.getCellByPosition(1, 1)) Then
+		Value = True
+	End If
+
+	NoData = Value
+
+End Function
+
 
 REM ***** Debug functions *****
 
