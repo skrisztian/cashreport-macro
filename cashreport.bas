@@ -376,7 +376,7 @@ Sub GetDefaults
     Defaults.FirstYear = Sheet.GetCellByPosition(2, 21).Value
 
 	'First month of report
-	Defaults.FirstMonth = Sheet.GetCellByPosition(2, 28).Value
+	Defaults.FirstMonth = Sheet.GetCellByPosition(2, 29).Value
 	
 	'City long name
     Defaults.CityName = Sheet.GetCellByPosition(2, 23).String
